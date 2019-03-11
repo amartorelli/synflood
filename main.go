@@ -100,6 +100,11 @@ func main() {
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 
+	formatter := &logrus.TextFormatter{
+		FullTimestamp: true,
+	}
+	logrus.SetFormatter(formatter)
+
 	interval := flag.Int("interval", 3000, "interval in milliseconds to send packets")
 	host := flag.String("host", "", "the host you want to send the packets to")
 	port := flag.Int("port", 0, "the port to send the packets to")

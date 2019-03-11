@@ -139,9 +139,10 @@ func main() {
 				logrus.Fatal(err)
 			}
 			s.Write(buf)
-			logrus.Printf("sent packet %v\n", packet)
+			logrus.Printf("sent packet %+v\n", packet)
 		case s := <-sigs:
 			logrus.Infof("received signal %s, exiting", s.String())
+			return
 		}
 	}
 

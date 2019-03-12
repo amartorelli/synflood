@@ -1,19 +1,20 @@
-package main
+package pktcrafter
 
 import (
 	"bytes"
 	"encoding/binary"
-	"flag"
 	"math/rand"
-	"net"
-	"os"
-	"os/signal"
-	"syscall"
 	"time"
-
-	"github.com/amartorelli/synflood/pkg/pktcrafter"
-	"github.com/sirupsen/logrus"
 )
+
+// Crafter is the main entity that crafts packets
+type Crafter struct{}
+
+// NewCrafter returns a new crafter
+func NewCrafter() *Crafter {
+	rand.Seed(time.Now().Unix())
+	return &Crafter{}
+}
 
 // TCPPacket represents the body of a TCP packet
 type TCPPacket struct {
@@ -85,62 +86,42 @@ func (p *TCPPacket) pack() ([]byte, error) {
 }
 
 const (
-	fin = 1
-	syn = 2
-	rst = 4
-	psh = 8
-	ack = 16
-	urg = 32
+	// FIN flag
+	FIN = 1
+	// SYN flag
+	SYN = 2
+	// RST flag
+	RST = 4
+	// PSH flag
+	PSH = 8
+	// ACK flag
+	ACK = 16
+	// URG flag
+	URG = 32
 )
 
 func random(min, max int) int {
 	return rand.Intn(max-min) + min
 }
 
-func main() {
-	sigs := make(chan os.Signal, 1)
-	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+// CraftSyn returns an array of bytes representing a simple SYN packet
+func (c *Crafter) CraftSyn(port int) *TCPPacket {
+	srcPort := random(32768, 61000)
+	seq := random(0, 4294967295)
 
-	formatter := &logrus.TextFormatter{
-		FullTimestamp: true,
+	return &TCPPacket{
+		SourcePort:      uint16(srcPort),
+		DestinationPort: uint16(port),
+		SeqNumber:       uint32(seq),
+		AckNumber:       0,
+		HeaderLen:       5,
+		Flags:           SYN,
+		WindowSize:      65535,
 	}
-	logrus.SetFormatter(formatter)
+}
 
-	interval := flag.Int("interval", 3000, "interval in milliseconds to send packets")
-	host := flag.String("host", "", "the host you want to send the packets to")
-	port := flag.Int("port", 0, "the port to send the packets to")
-	flag.Parse()
-
-	if *host == "" || *port == 0 {
-		logrus.Fatal("host and/or port undefined")
-	}
-
-	dst, err := net.ResolveIPAddr("ip", *host)
-	if err != nil {
-		logrus.Fatal(err)
-	}
-	s, err := net.DialIP("ip4:tcp", nil, dst)
-	if err != nil {
-		logrus.Fatal(err)
-	}
-
-	c := pktcrafter.NewCrafter()
-
-	for {
-		select {
-		case <-time.After(time.Duration(*interval) * time.Millisecond):
-			pkt := c.CraftSyn(*port)
-			buf, err := pkt.Bytes()
-			if err != nil {
-				logrus.Error(err)
-			}
-
-			s.Write(buf)
-			logrus.Printf("sent packet %+v\n", pkt)
-		case s := <-sigs:
-			logrus.Infof("received signal %s, exiting", s.String())
-			return
-		}
-	}
-
+// Bytes returns the byte representation of the packet structure
+func (p *TCPPacket) Bytes() ([]byte, error) {
+	buf, err := p.pack()
+	return buf, err
 }

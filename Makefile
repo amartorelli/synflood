@@ -13,6 +13,3 @@ clean:
 	$(GOCLEAN)
 	rm -f $(BINARY_NAME)
 	rm -f $(BINARY_UNIX)
-run:
-	./dist/$(BINARY_NAME) -conf ./config/dev.yml
-build-run: build run

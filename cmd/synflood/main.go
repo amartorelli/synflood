@@ -1,10 +1,7 @@
 package main
 
 import (
-	"bytes"
-	"encoding/binary"
 	"flag"
-	"math/rand"
 	"net"
 	"os"
 	"os/signal"
@@ -14,88 +11,6 @@ import (
 	"github.com/amartorelli/synflood/pkg/pktcrafter"
 	"github.com/sirupsen/logrus"
 )
-
-// TCPPacket represents the body of a TCP packet
-type TCPPacket struct {
-	SourcePort      uint16
-	DestinationPort uint16
-	SeqNumber       uint32
-	AckNumber       uint32
-	HeaderLen       uint8
-	Flags           uint8
-	WindowSize      uint16
-	Checksum        uint16
-	UrgentPointer   uint16
-	Options         uint32
-	Data            []byte
-}
-
-// pack composes and returns the bytes representing the packet
-func (p *TCPPacket) pack() ([]byte, error) {
-	buf := new(bytes.Buffer)
-
-	// Source port
-	err := binary.Write(buf, binary.BigEndian, p.SourcePort)
-	if err != nil {
-		return nil, err
-	}
-	// Destination port
-	err = binary.Write(buf, binary.BigEndian, p.DestinationPort)
-	if err != nil {
-		return nil, err
-	}
-	// SeqNumber
-	err = binary.Write(buf, binary.BigEndian, p.SeqNumber)
-	if err != nil {
-		return nil, err
-	}
-	// AckNumber
-	err = binary.Write(buf, binary.BigEndian, p.AckNumber)
-	if err != nil {
-		return nil, err
-	}
-	// Header length + flags + Window
-	hf := uint32(p.WindowSize) + uint32(p.Flags)<<16 + uint32(p.HeaderLen)<<28
-	err = binary.Write(buf, binary.BigEndian, hf)
-	if err != nil {
-		return nil, err
-	}
-	// Checksum
-	err = binary.Write(buf, binary.BigEndian, p.Checksum)
-	if err != nil {
-		return nil, err
-	}
-	// UrgentPointer
-	err = binary.Write(buf, binary.BigEndian, p.UrgentPointer)
-	if err != nil {
-		return nil, err
-	}
-	// Options
-	err = binary.Write(buf, binary.BigEndian, p.Options)
-	if err != nil {
-		return nil, err
-	}
-	// Data
-	err = binary.Write(buf, binary.BigEndian, p.Data)
-	if err != nil {
-		return nil, err
-	}
-
-	return buf.Bytes(), nil
-}
-
-const (
-	fin = 1
-	syn = 2
-	rst = 4
-	psh = 8
-	ack = 16
-	urg = 32
-)
-
-func random(min, max int) int {
-	return rand.Intn(max-min) + min
-}
 
 func main() {
 	sigs := make(chan os.Signal, 1)
